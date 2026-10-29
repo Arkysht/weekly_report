@@ -1,5 +1,6 @@
 venv/
 __pycache__/
+.vscode/
 *.pyc
 config.py
 accounts_config.py

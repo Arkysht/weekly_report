@@ -5,17 +5,14 @@ from typing import Dict, Any, List, Optional
 import config
 from accounts_config import ACCOUNTS
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart
-from aiogram.types import Message
 
 from facebook_business.api import FacebookAdsApi
 from facebook_business.adobjects.adaccount import AdAccount
 
 bot = Bot(token=config.TELEGRAM_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-dp = Dispatcher()
 
 tg_id = config.CHAT_ID
 
@@ -114,14 +111,6 @@ def get_last_week_range() -> tuple[datetime.date, datetime.date]:
     return last_monday, last_sunday
 
 
-def get_month_to_yesterday_range() -> tuple[datetime.date, datetime.date]:
-    """Возвращает диапазон дат с первого числа текущего месяца по вчерашний день."""
-    today = datetime.date.today()
-    month_start = today.replace(day=1)
-    yesterday = today - datetime.timedelta(days=1)
-    return month_start, yesterday
-
-
 # ============================ ЗАПРОСЫ К META API ============================
 
 def fetch_campaign_rows_range(fb_account_id: str, since: str, until: str) -> List[Dict[str, Any]]:
@@ -212,8 +201,10 @@ def aggregate_by_category(
 
 # ============================ РАСШИРЕННЫЕ ОТЧЁТЫ (индивидуальные кабинеты) ============================
 
+acc = {item["name"]: item for item in ACCOUNTS} # справочник по именам
+
 EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
-    "act_1284950825579466": {  # CD
+    acc["CD"]["fb_account_id"]: {  # CD
         "greeting": "Відправляю короткий звіт з {period} ({account_name})\n",
         "sections": [
             {
@@ -226,7 +217,7 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
         ],
         "currency_override": "$",
     },
-    "act_1498849214543354": {  # Valeri Flower
+    acc["Valeri Flowers"]["fb_account_id"]: {  # Valeri Flower
         "greeting": "Відправляю короткий звіт з {period} ({account_name})\n",
         "total_spend_line": True,
         "sections": [
@@ -235,7 +226,6 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
                 "blocks": [
                     {
                         "label": None,
-                        # ПРЕДПОЛОЖЕНИЕ — сверь с реальным неймингом кампаний в Ads Manager.
                         "keywords": ["смс", "sms", "повідом", "директ", "direct", "пов"],
                         "auto_count": None,
                         "manual_fields": ["Переписки у Інстаграм", "Покупки", "Ціна продажу", "Сума продаж", "Підписники"],
@@ -247,7 +237,6 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
                 "blocks": [
                     {
                         "label": None,
-                        # ПРЕДПОЛОЖЕНИЕ — сверь с реальным неймингом кампаний в Ads Manager.
                         "keywords": ["трафік", "traffic"],
                         "auto_count": None,
                         "manual_fields": ["Переписки у Інстаграм", "Підписники", "Ціна підписника"],
@@ -257,7 +246,7 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
         ],
         "currency_override": "$",
     },
-        "act_678481241285112": {  # Массаж
+        acc["Массаж"]["fb_account_id"]: {  # Массаж
         "greeting": "Відправляю короткий звіт з {period} ({account_name})\n",
         "total_spend_line": True,
         "sections": [
@@ -290,7 +279,7 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
         ],
         "currency_override": "$",
     },
-    "act_280381074046319": {  # Hells
+    acc["Hells"]["fb_account_id"]: {  # Hells
         "greeting": "Відправляю короткий звіт від {period} ({account_name})\n",
         "spend_label": "Використано бюджету",
         "sections": [
@@ -466,7 +455,7 @@ async def send_weekly_report_for_account(acc: Dict[str, Any]) -> None:
     иначе — стандартный (build_report_text)."""
     fb_account_id = acc["fb_account_id"]
     week_start, week_end = get_last_week_range()
-    month_start, _ = get_month_to_yesterday_range()
+    month_start = week_end.replace(day=1)
 
     week_rows = fetch_campaign_rows_range(
         fb_account_id, week_start.strftime("%Y-%m-%d"), week_end.strftime("%Y-%m-%d")
@@ -497,25 +486,19 @@ async def send_all_reports() -> None:
     FacebookAdsApi.init(config.FB_APP_ID, config.FB_APP_SECRET, config.FB_ACCESS_TOKEN)
     print(len(ACCOUNTS), [a["name"] for a in ACCOUNTS])
     for acc in ACCOUNTS:
-        try:
+        try:git diff
             await send_weekly_report_for_account(acc)
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             await bot.send_message(chat_id=tg_id, text=f"Ошибка при формировании отчёта для {acc['name']}: {e}")
 
 
 # ============================ ХЕНДЛЕРЫ ============================
 
-@dp.message(CommandStart())
-async def cmd_start(message: Message):
-    """Возвращает Chat ID пользователя при отправке команды /start."""
-    await message.answer(f"Привет! Вот твой Chat ID: {message.chat.id}")
-
-
 async def main():
-    await bot.delete_webhook(drop_pending_updates=True)
-    await send_all_reports()
-    await dp.start_polling(bot)
-
+    try: 
+        await send_all_reports()
+    finally:
+        await bot.session.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
