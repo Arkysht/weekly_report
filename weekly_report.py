@@ -486,7 +486,7 @@ async def send_all_reports() -> None:
     FacebookAdsApi.init(config.FB_APP_ID, config.FB_APP_SECRET, config.FB_ACCESS_TOKEN)
     print(len(ACCOUNTS), [a["name"] for a in ACCOUNTS])
     for acc in ACCOUNTS:
-        try:git diff
+        try:
             await send_weekly_report_for_account(acc)
         except Exception as e: # noqa: BLE001
             await bot.send_message(chat_id=tg_id, text=f"Ошибка при формировании отчёта для {acc['name']}: {e}")
