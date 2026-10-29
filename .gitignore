@@ -2,3 +2,5 @@ venv/
 __pycache__/
 *.pyc
 config.py
+accounts_config.py
+weekly_report.code-workspace

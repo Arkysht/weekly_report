@@ -21,6 +21,18 @@ ACCOUNTS: List[Dict[str, Any]] = [
         "custom_requests_action_type": "offsite_conversion.custom.2053331442068952",
     },
     {
+        "name": "Better Drink Tea",
+        "fb_account_id": "act_1040117867344745",
+    },
+    {
+        "name": "Liubov Психолог",
+        "fb_account_id": "act_1595029205698480",
+    },
+    {
+        "name": "Coach Roman",
+        "fb_account_id": "act_1424708973149229",
+    },
+    {
         "name": "Valeri Flowers",
         "fb_account_id": "act_1498849214543354",
     },

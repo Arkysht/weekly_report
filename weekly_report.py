@@ -23,8 +23,8 @@ tg_id = config.CHAT_ID
 # ============================ КЛАССИФИКАЦИЯ КАМПАНИЙ ============================
 
 PURCHASE_KEYWORDS = ["purchase"]
-MESSAGE_KEYWORDS = ["direct", "директ", "смс", "sms"]
-LEAD_KEYWORDS = ["lead", "лид"]
+MESSAGE_KEYWORDS = ["direct", "директ", "смс", "sms", "пов"]
+LEAD_KEYWORDS = ["lead", "лид", "leds", "квиз", "quiz"]
 
 PURCHASE_OBJECTIVES = {"OUTCOME_SALES"}
 MESSAGE_OBJECTIVES = {"OUTCOME_ENGAGEMENT"}
@@ -84,15 +84,23 @@ def get_action_value_priority(actions: Optional[List[Dict[str, Any]]], priority_
     return 0.0
 
 
-def filter_rows_by_keywords(rows: List[Dict[str, Any]], keywords: Optional[List[str]]) -> List[Dict[str, Any]]:
-    """Строки, где в campaign_name встречается любое из keywords (без учёта регистра).
-    keywords=None -> все строки без фильтрации."""
-    if keywords is None:
-        return rows
-    return [
+def filter_rows_by_keywords(
+    rows: List[Dict[str, Any]],
+    keywords: Optional[List[str]],
+    exclude_keywords: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    """Строки, где в campaign_name есть любое из keywords (без учёта регистра).
+    keywords=None -> все строки. exclude_keywords -> дополнительно убирает строки с этими словами."""
+    result = rows if keywords is None else [
         row for row in rows
         if any(kw.lower() in (row.get("campaign_name") or "").lower() for kw in keywords)
     ]
+    if exclude_keywords:
+        result = [
+            row for row in result
+            if not any(kw.lower() in (row.get("campaign_name") or "").lower() for kw in exclude_keywords)
+        ]
+    return result
 
 
 # ============================ ДАТЫ ============================
@@ -206,7 +214,7 @@ def aggregate_by_category(
 
 EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
     "act_1284950825579466": {  # CD
-        "greeting": "Відправляю короткий звіт з {period}",
+        "greeting": "Відправляю короткий звіт з {period} ({account_name})\n",
         "sections": [
             {
                 "header": "📉 Ліди",
@@ -219,7 +227,7 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
         "currency_override": "$",
     },
     "act_1498849214543354": {  # Valeri Flower
-        "greeting": "Відправляю короткий звіт з {period}",
+        "greeting": "Відправляю короткий звіт з {period} ({account_name})\n",
         "total_spend_line": True,
         "sections": [
             {
@@ -228,7 +236,7 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
                     {
                         "label": None,
                         # ПРЕДПОЛОЖЕНИЕ — сверь с реальным неймингом кампаний в Ads Manager.
-                        "keywords": ["смс", "sms", "повідом", "директ", "direct"],
+                        "keywords": ["смс", "sms", "повідом", "директ", "direct", "пов"],
                         "auto_count": None,
                         "manual_fields": ["Переписки у Інстаграм", "Покупки", "Ціна продажу", "Сума продаж", "Підписники"],
                     },
@@ -249,17 +257,17 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
         ],
         "currency_override": "$",
     },
-    "act_678481241285112": {  # Массаж
-        "greeting": "Відправляю короткий звіт з {period}",
+        "act_678481241285112": {  # Массаж
+        "greeting": "Відправляю короткий звіт з {period} ({account_name})\n",
         "total_spend_line": True,
         "sections": [
             {
                 "header": "📩 Повідомлення/Польща🇵🇱",
-                "keywords": ["PL"],
+                "keywords": ["польш", "польщ"],
                 "blocks": [
                     {
                         "label": None,
-                        "keywords": ["PL"],
+                        "keywords": ["польш", "польщ"],
                         "auto_count": None,
                         "manual_fields": ["Переписки у Інстаграм", "Ціна смс"],
                         "manual_note": True,
@@ -268,11 +276,11 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
             },
             {
                 "header": "📩 Повідомлення/Німеччина🇩🇪",
-                "keywords": ["DE"],
+                "keywords": ["німеччин", "немеч", "герман"],
                 "blocks": [
                     {
                         "label": None,
-                        "keywords": ["DE"],
+                        "keywords": ["німеччин", "немеч", "герман"],
                         "auto_count": None,
                         "manual_fields": ["Переписки у Інстаграм", "Ціна смс"],
                         "manual_note": True,
@@ -282,50 +290,51 @@ EXTENDED_REPORTS: Dict[str, Dict[str, Any]] = {
         ],
         "currency_override": "$",
     },
-    # "act_ВСТАВЬ_СЮДА_ID_YOZ": {  # YOZ — раскомментировать и вписать fb_account_id, когда будет известен
-    #     "greeting": "Przesyłam krótkie sprawozdanie z okresu {period}",
-    #     "spend_label": "Wykorzystano budżet",
-    #     "total_spend_line": False,
-    #     "sections": [
-    #         {
-    #             "header": "📉 RUCH",
-    #             "blocks": [
-    #                 {
-    #                     "label": None,
-    #                     # ПРЕДПОЛОЖЕНИЕ — сверь с реальным неймингом кампаний в Ads Manager
-    #                     # (польск. "ruch" = трафик).
-    #                     "keywords": ["ruch", "traffic"],
-    #                     "auto_count": None,
-    #                     "manual_fields": [
-    #                         "Subskrypcje z reklamy",
-    #                         "Za subskrypcję",
-    #                         "Liczba zgłoszeń usługi",
-    #                     ],
-    #                 },
-    #             ],
-    #         },
-    #         {
-    #             "header": "SMS/mani",
-    #             "blocks": [
-    #                 {
-    #                     "label": None,
-    #                     # ПРЕДПОЛОЖЕНИЕ — сверь с реальным неймингом кампаний.
-    #                     "keywords": ["sms", "mani"],
-    #                     "auto_count": None,
-    #                     "manual_fields": [
-    #                         "Liczba zgłoszeń usługi",
-    #                         "Cena zgłoszenia",
-    #                         "Rezerwacja",
-    #                         "Subskrypcje",
-    #                     ],
-    #                 },
-    #             ],
-    #         },
-    #     ],
-    #     "month_line_template": "Wydany budżet za cały okres ({month_name}) {amount:,.2f} {currency}",
-    #     "debt_line_template": "Aktualna kwota do zapłaty - {amount:,.2f} {currency}",
-    #     "currency_override": "zł",
-    # },
+    "act_280381074046319": {  # Hells
+        "greeting": "Відправляю короткий звіт від {period} ({account_name})\n",
+        "spend_label": "Використано бюджету",
+        "sections": [
+            {
+                "header": "📉Повідомлення",
+                "blocks": [
+                    {
+                        "label": "Бьюті",
+                        "keywords": None,
+                        "exclude_keywords": ["barber", "барбер"],
+                        "auto_count": None,
+                        "manual_fields": ["Кількість заявок"],
+                    },
+                    {
+                        "label": "Кератин",
+                        "keywords": ["keratyn", "keratin", "кератин"],
+                        "auto_count": None,
+                        "manual_fields": ["Кількість заявок", "Ціна заявки", "Записів"],
+                    },
+                    {
+                        "label": "Мані",
+                        "keywords": ["mani", "мані", "мани"],
+                        "auto_count": None,
+                        "manual_fields": ["Кількість заявок", "Ціна заявки", "Записів"],
+                    },
+                    {
+                        "label": "Лазер",
+                        "keywords": ["dl", "laser", "лазер", "lp", "лп"],
+                        "auto_count": None,
+                        "manual_fields": ["Кількість заявок", "Ціна заявки", "Записів"],
+                    },
+                    {
+                        "label": "Барбер",
+                        "keywords": ["barber", "барбер"],
+                        "auto_count": None,
+                        "manual_fields": ["Заявки", "Ціна заявки", "Записи", "Ціна клієнта"],
+                    },
+                ],
+            },
+        ],
+        "month_line_template": "Витрачена сума за {month_name} - {amount:,.2f} {currency}",
+        "debt_line_template": "Сума до сплати - {amount:,.2f} {currency}",
+        "currency_override": "zł",
+    },    
 }
 
 
@@ -344,7 +353,7 @@ def build_report_from_config(
     month_name = week_end.strftime("%B")
     spend_label = cfg.get("spend_label", "Потрачено")
 
-    lines = [cfg["greeting"].format(period=period), ""]
+    lines = [cfg["greeting"].format(period=period, account_name=acc["name"]), ""]
 
     if cfg.get("total_spend_line"):
         total_spend = sum_spend_from_rows(week_rows)
@@ -393,11 +402,11 @@ def build_report_from_config(
     month_line = cfg.get(
         "month_line_template", "Витрачено на рекламу у {month_name} - {amount:,.2f} {currency}"
     )
-    lines.append(month_line.format(month_name=month_name, amount=month_spend, currency=currency))
+    lines.append(month_line.format(month_name=month_name, amount=month_spend, currency=currency, account_name=acc["name"]))
 
     if current_debt is not None:
         debt_line = cfg.get("debt_line_template", "Баланс до оплати - {currency}{amount:,.2f}")
-        lines.append(debt_line.format(amount=current_debt, currency=currency))
+        lines.append(debt_line.format(amount=current_debt, currency=currency, account_name=acc["name"]))
 
     return "\n".join(lines)
 
@@ -486,6 +495,7 @@ async def send_weekly_report_for_account(acc: Dict[str, Any]) -> None:
 async def send_all_reports() -> None:
     """Инициализирует SDK Meta API и запускает отправку отчетов для всех аккаунтов."""
     FacebookAdsApi.init(config.FB_APP_ID, config.FB_APP_SECRET, config.FB_ACCESS_TOKEN)
+    print(len(ACCOUNTS), [a["name"] for a in ACCOUNTS])
     for acc in ACCOUNTS:
         try:
             await send_weekly_report_for_account(acc)
