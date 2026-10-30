@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  weekly_report_bot:
+    build: .
+    container_name: weekly_report_bot_1
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    network_mode: "bridge"
+    volumes:
+      - /opt/meta_ads_bots/weekly_report_data/config.py:/app/config.py
+      - /opt/meta_ads_bots/weekly_report_data/accounts_config.py:/app/accounts_config.py
+      - /opt/meta_ads_bots/weekly_report_data/credentials.json:/app/credentials.json
+    restart: "no"
